@@ -111,11 +111,17 @@ static const char *browsers[][2] = {
   {"Apache", "Others"},
 
   /* Feed-reader-as-a-service */
+  {"AppleNewsBot", "Feeds"},
   {"Bloglines", "Feeds"},
+  {"Digg Feed Fetcher", "Feeds"},
+  {"Feedbin", "Feeds"},
+  {"FeedHQ", "Feeds"},
   {"Feedly", "Feeds"},
   {"Flipboard", "Feeds"},
   {"Netvibes", "Feeds"},
   {"NewsBlur", "Feeds"},
+  {"PinRSS", "Feeds"},
+  {"WordPress.com Reader", "Feeds"},
   {"YandexBlogs", "Feeds"},
 
   /* Google crawlers (some based on Chrome,
@@ -146,8 +152,8 @@ static const char *browsers[][2] = {
   /* Crawlers/Bots */
   {"bingbot", "Crawlers"},
   {"msnbot", "Crawlers"},
-  {"Yandex", "Crawlers"},
-  {"Baidu", "Crawlers"},
+  {"YandexBot", "Crawlers"},
+  {"Baiduspider", "Crawlers"},
   {"Ezooms", "Crawlers"},
   {"Twitter", "Crawlers"},
   {"Slurp", "Crawlers"},
@@ -212,7 +218,6 @@ static const char *browsers[][2] = {
   {"TosCrawler", "Crawlers"},
   {"Updownerbot", "Crawlers"},
   {"urlwatch", "Crawlers"},
-  {"IstellaBot", "Crawlers"},
   {"OpenWebSpider", "Crawlers"},
   {"WordPress", "Crawlers"},
   {"yacybot", "Crawlers"},
@@ -256,6 +261,12 @@ static const char *browsers[][2] = {
   {"Image", "Crawlers"},
   {"keybase-proofs", "Crawlers"},
   {"SemrushBot", "Crawlers"},
+  {"CommonCrawler", "Crawlers"},
+  {"Mail.RU_Bot", "Crawlers"},
+  {"MegaIndex.ru", "Crawlers"},
+  {"XoviBot", "Crawlers"},
+  {"X-CAD-SE", "Crawlers"},
+  {"Safeassign", "Crawlers"},
 
   /* Podcast fetchers */
   {"Downcast", "Podcasts"},
@@ -269,6 +280,7 @@ static const char *browsers[][2] = {
   /* Feed reader clients */
   {"Akregator", "Feeds"},
   {"Apple-PubSub", "Feeds"},
+  {"com.apple.Safari.WebFeedParser", "Feeds"},
   {"FeedDemon", "Feeds"},
   {"Feedy", "Feeds"},
   {"Liferea", "Feeds"},

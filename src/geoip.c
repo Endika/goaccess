@@ -1,5 +1,5 @@
 /**
- * geolocation.c -- GeoLocation related functions
+ * geoip.c -- implementation of GeoIP
  *    ______      ___
  *   / ____/___  /   | _____________  __________
  *  / / __/ __ \/ /| |/ ___/ ___/ _ \/ ___/ ___/
@@ -37,12 +37,64 @@
 #include <GeoIPCity.h>
 #endif
 
-#include "geolocation.h"
+#include "geoip.h"
 
 #include "error.h"
 #include "util.h"
 
-GeoIP *geo_location_data;
+static GeoIP *geo_location_data;
+
+/* Determine if we have a valid geoip resource.
+ *
+ * If the geoip resource is NULL, 0 is returned.
+ * If the geoip resource is valid and malloc'd, 1 is returned. */
+int
+is_geoip_resource (void)
+{
+  return geo_location_data != NULL ? 1 : 0;
+}
+
+/* Free up GeoIP resources */
+void
+geoip_free (void)
+{
+  if (!is_geoip_resource ())
+    return;
+
+  GeoIP_delete (geo_location_data);
+  GeoIP_cleanup ();
+}
+
+/* Open the given GeoLocation database and set its charset.
+ *
+ * On error, it aborts.
+ * On success, a new geolocation structure is returned. */
+static GeoIP *
+geoip_open_db (const char *db)
+{
+  GeoIP *geoip;
+  geoip = GeoIP_open (db, GEOIP_MEMORY_CACHE);
+
+  if (geoip == NULL)
+    FATAL ("Unable to open GeoIP database: %s\n", db);
+
+  GeoIP_set_charset (geoip, GEOIP_CHARSET_UTF8);
+  LOG_DEBUG (("Opened GeoIP City database: %s\n", db));
+
+  return geoip;
+}
+
+/* Set up and open GeoIP database */
+void
+init_geoip (void)
+{
+  /* open custom city GeoIP database */
+  if (conf.geoip_database != NULL)
+    geo_location_data = geoip_open_db (conf.geoip_database);
+  /* fall back to legacy GeoIP database */
+  else
+    geo_location_data = GeoIP_new (conf.geo_db);
+}
 
 /* Get continent name concatenated with code.
  *
@@ -69,34 +121,15 @@ get_continent_name_and_code (const char *continentid)
     return "-- Unknown";
 }
 
-/* Open the given GeoLocation database and set its charset.
- *
- * On error, it aborts.
- * On success, a new geolocation structure is returned. */
-GeoIP *
-geoip_open_db (const char *db)
-{
-  GeoIP *geoip;
-  geoip = GeoIP_open (db, GEOIP_MEMORY_CACHE);
-
-  if (geoip == NULL)
-    FATAL ("Unable to open GeoIP database: %s\n", db);
-
-  GeoIP_set_charset (geoip, GEOIP_CHARSET_UTF8);
-  LOG_DEBUG (("Opened GeoIP City database: %s\n", db));
-
-  return geoip;
-}
-
 /* Compose a string with the country name and code and store it in the
  * given buffer. */
 static void
 geoip_set_country (const char *country, const char *code, char *loc)
 {
   if (country && code)
-    sprintf (loc, "%s %s", code, country);
+    snprintf (loc, COUNTRY_LEN, "%s %s", code, country);
   else
-    sprintf (loc, "%s", "Unknown");
+    snprintf (loc, COUNTRY_LEN, "%s", "Unknown");
 }
 
 /* Compose a string with the city name and state/region and store it
@@ -104,8 +137,8 @@ geoip_set_country (const char *country, const char *code, char *loc)
 static void
 geoip_set_city (const char *city, const char *region, char *loc)
 {
-  sprintf (loc, "%s, %s", city ? city : "N/A City",
-           region ? region : "N/A Region");
+  snprintf (loc, CITY_LEN, "%s, %s", city ? city : "N/A City",
+            region ? region : "N/A Region");
 }
 
 /* Compose a string with the continent name and store it in the given
@@ -114,9 +147,10 @@ static void
 geoip_set_continent (const char *continent, char *loc)
 {
   if (continent)
-    sprintf (loc, "%s", get_continent_name_and_code (continent));
+    snprintf (loc, CONTINENT_LEN, "%s",
+              get_continent_name_and_code (continent));
   else
-    sprintf (loc, "%s", "Unknown");
+    snprintf (loc, CONTINENT_LEN, "%s", "Unknown");
 }
 
 /* Get detailed information found in the GeoIP Database about the
@@ -202,7 +236,7 @@ geoip_set_country_by_geoid (const char *ip, char *location, GTypeIP type_ip)
   const char *country = NULL, *code = NULL, *addr = ip;
   int geoid = 0;
 
-  if (geo_location_data == NULL)
+  if (!is_geoip_resource ())
     return;
 
   if (!(country = geoip_get_country_by_geoid (addr, type_ip)))
@@ -283,7 +317,7 @@ geoip_set_continent_by_geoid (const char *ip, char *location, GTypeIP type_ip)
   const char *continent = NULL, *addr = ip;
   int geoid = 0;
 
-  if (geo_location_data == NULL)
+  if (!is_geoip_resource ())
     return;
 
   if (!(geoid = geoip_get_geoid (addr, type_ip)))
@@ -390,7 +424,7 @@ set_geolocation (char *host, char *continent, char *country, char *city)
 {
   int type_ip = 0;
 
-  if (geo_location_data == NULL)
+  if (!is_geoip_resource ())
     return 1;
 
   if (invalid_ipaddr (host, &type_ip))

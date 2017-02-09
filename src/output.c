@@ -129,7 +129,7 @@ static GHTML htmldef[] = {
     {CHART_VBAR, hits_visitors_plot, 0, 0},
     {CHART_VBAR, hits_bw_plot, 0, 0},
   }},
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
   {GEO_LOCATION, 1, print_metrics, {
     {CHART_VBAR, hits_visitors_plot, 0, 1},
     {CHART_VBAR, hits_bw_plot, 0, 1},
@@ -507,8 +507,7 @@ print_conn_def (FILE * fp)
   fprintf (fp, "var connection = ");
 
   fpopen_obj (fp, sp);
-  fpskeysval (fp, "url",
-              (conf.ws_url ? conf.ws_url : "window.location.hostname"), sp, 0);
+  fpskeysval (fp, "url", (conf.ws_url ? conf.ws_url : ""), sp, 0);
   fpskeyival (fp, "port", (conf.port ? atoi (conf.port) : 7890), sp, 1);
   fpclose_obj (fp, sp, 1);
 
@@ -600,7 +599,7 @@ print_def_overall_processed_time (FILE * fp, int sp)
 {
   GDefMetric def = {
     .lbl = T_GEN_TIME,
-    .datatype = "numeric",
+    .datatype = "secs",
     .cname = "gray"
   };
   fpopen_obj_attr (fp, OVERALL_GENTIME, sp);
@@ -1112,28 +1111,25 @@ print_def_summary (FILE * fp, int sp)
 
 /* Output definitions for the given panel. */
 static void
-print_json_def_summary (FILE * fp, GHolder * holder)
+print_json_def_summary (FILE * fp)
 {
-  char *head = NULL;
   int sp = 0;
 
   /* use tabs to prettify output */
   if (conf.json_pretty_print)
     sp = 1;
 
-  head = get_overall_header (holder);
   /* output open panel attribute */
   fpopen_obj_attr (fp, GENER_ID, sp);
-  print_def_meta (fp, head, "", sp);
+  print_def_meta (fp, T_HEAD, "", sp);
   print_def_summary (fp, sp);
   /* output close panel attribute */
   fpclose_obj (fp, sp, 0);
-  free (head);
 }
 
 /* Entry point to output definitions for all panels. */
 static void
-print_json_defs (FILE * fp, GHolder * holder)
+print_json_defs (FILE * fp)
 {
   const GHTML *def;
   size_t idx = 0;
@@ -1143,7 +1139,7 @@ print_json_defs (FILE * fp, GHolder * holder)
   fprintf (fp, "var user_interface=");
   fpopen_obj (fp, 0);
 
-  print_json_def_summary (fp, holder);
+  print_json_def_summary (fp);
   FOREACH_MODULE (idx, module_list) {
     if ((def = panel_lookup (module_list[idx]))) {
       print_json_def (fp, def);
@@ -1181,7 +1177,7 @@ output_html (GLog * glog, GHolder * holder, const char *filename)
   print_html_header (fp);
 
   print_html_body (fp, now);
-  print_json_defs (fp, holder);
+  print_json_defs (fp);
   print_json_data (fp, glog, holder);
   print_conn_def (fp);
 

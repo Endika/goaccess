@@ -48,6 +48,7 @@
 #include <ctype.h>
 
 #include <errno.h>
+#include <inttypes.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
@@ -87,7 +88,7 @@ static GOutput outputting[] = {
   {KEYPHRASES      , 1 , 1 , 1 , 1 , 1 , 1 , 1 , 0 , 0 , 1 , 0 , 0} ,
   {STATUS_CODES    , 1 , 1 , 1 , 1 , 1 , 1 , 1 , 0 , 0 , 1 , 0 , 0} ,
   {REMOTE_USER     , 1 , 1 , 1 , 1 , 1 , 1 , 1 , 0 , 0 , 1 , 0 , 0} ,
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
   {GEO_LOCATION    , 1 , 1 , 1 , 1 , 1 , 1 , 1 , 0 , 0 , 1 , 0 , 0} ,
 #endif
 };
@@ -275,7 +276,7 @@ module_to_label (GModule module)
     KEYPH_LABEL,
     CODES_LABEL,
     RUSER_LABEL,
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
     GEOLO_LABEL,
 #endif
   };
@@ -304,7 +305,7 @@ module_to_id (GModule module)
     KEYPH_ID,
     CODES_ID,
     RUSER_ID,
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
     GEOLO_ID,
 #endif
   };
@@ -333,7 +334,7 @@ module_to_head (GModule module)
     KEYPH_HEAD,
     CODES_HEAD,
     RUSER_HEAD,
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
     GEOLO_HEAD,
 #endif
   };
@@ -366,7 +367,7 @@ module_to_desc (GModule module)
     KEYPH_DESC,
     CODES_DESC,
     RUSER_DESC,
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
     GEOLO_DESC,
 #endif
   };
@@ -505,7 +506,11 @@ get_str_visitors (void)
 static char *
 get_str_proctime (void)
 {
-  return int2str (((long long) end_proc - start_proc), 0);
+  uint64_t secs = (long long) end_proc - start_proc;
+  char *s = xmalloc (snprintf (NULL, 0, "%" PRIu64 "s", secs) + 1);
+  sprintf (s, "%" PRIu64 "s", secs);
+
+  return s;
 }
 
 /* Get the log file size in a human readable format.
@@ -559,29 +564,47 @@ get_visitors_dates (GHolder * h)
   return dates;
 }
 
+/* Get the overall statistics start and end dates.
+ *
+ * On failure, 1 is returned
+ * On success, 0 is returned and an string containing the overall
+ * header is returned. */
+int
+get_start_end_parsing_dates (GHolder * h, char **start, char **end,
+                             const char *f)
+{
+  char **dates = NULL;
+  const char *sndfmt = conf.spec_date_time_num_format;
+
+  if (h->idx == 0)
+    return 1;
+
+  dates = get_visitors_dates (h + VISITORS);
+
+  /* just display the actual dates - no specificity */
+  *start = get_visitors_date (dates[0], sndfmt, f);
+  *end = get_visitors_date (dates[h->idx - 1], sndfmt, f);
+
+  free (dates);
+
+  return 0;
+}
+
 /* Get the overall statistics header (label).
  *
  * On success, an string containing the overall header is returned. */
 char *
 get_overall_header (GHolder * h)
 {
-  const char *sndfmt = conf.spec_date_time_num_format;
-  const char *head = conf.output_stdout ? T_HEAD : T_DASH " - " T_HEAD;
-  char *hd = NULL, *start = NULL, *end = NULL, **dates = NULL;
+  const char *head = T_DASH " - " T_HEAD;
+  char *hd = NULL, *start = NULL, *end = NULL;
 
-  if (h->idx == 0)
+  if (h->idx == 0 || get_start_end_parsing_dates (h, &start, &end, "%d/%b/%Y"))
     return xstrdup (head);
-
-  dates = get_visitors_dates (h + VISITORS);
-
-  /* just display the actual dates - no specificity */
-  start = get_visitors_date (dates[0], sndfmt, "%d/%b/%Y");
-  end = get_visitors_date (dates[h->idx - 1], sndfmt, "%d/%b/%Y");
 
   hd = xmalloc (snprintf (NULL, 0, "%s (%s - %s)", head, start, end) + 1);
   sprintf (hd, "%s (%s - %s)", head, start, end);
 
-  free (dates);
   free (end);
   free (start);
 

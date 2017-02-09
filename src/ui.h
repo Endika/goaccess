@@ -57,7 +57,7 @@
 
 #define T_DATETIME   "Date/Time"
 #define T_REQUESTS   "Total Requests"
-#define T_GEN_TIME   "Processed Time"
+#define T_GEN_TIME   "Init. Proc. Time"
 #define T_FAILED     "Failed Requests"
 #define T_VALID      "Valid Requests"
 #define T_UNIQUE_VIS "Unique Visitors"
@@ -156,6 +156,8 @@
 #define GENER_ID   "general"
 
 /* Overall Statistics CSV/JSON Keys */
+#define OVERALL_STARTDATE "start_date"
+#define OVERALL_ENDDATE   "end_date"
 #define OVERALL_DATETIME  "date_time"
 #define OVERALL_REQ       "total_requests"
 #define OVERALL_VALID     "valid_requests"
@@ -334,6 +336,7 @@ const char *module_to_desc (GModule module);
 const char *module_to_head (GModule module);
 const char *module_to_id (GModule module);
 const char *module_to_label (GModule module);
+int get_start_end_parsing_dates (GHolder * h, char **start, char **end, const char *f);
 int render_confdlg (GLog * glog, GSpinner * spinner);
 int set_host_agents (const char *addr, void (*func) (void *, void *, int), void *arr);
 void close_win (WINDOW * w);

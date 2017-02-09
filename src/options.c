@@ -43,6 +43,10 @@
 #include "tcbtdb.h"
 #endif
 
+#ifdef HAVE_LIBGEOIP
+#include <GeoIP.h>
+#endif
+
 #include "options.h"
 
 #include "error.h"
@@ -93,8 +97,8 @@ struct option long_opts[] = {
   {"hour-spec"            , required_argument , 0 ,  0  } ,
   {"html-custom-css"      , required_argument , 0 ,  0  } ,
   {"html-custom-js"       , required_argument , 0 ,  0  } ,
-  {"html-report-title"    , required_argument , 0 ,  0  } ,
   {"html-prefs"           , required_argument , 0 ,  0  } ,
+  {"html-report-title"    , required_argument , 0 ,  0  } ,
   {"ignore-crawlers"      , no_argument       , 0 ,  0  } ,
   {"ignore-panel"         , required_argument , 0 ,  0  } ,
   {"ignore-referer"       , required_argument , 0 ,  0  } ,
@@ -114,6 +118,7 @@ struct option long_opts[] = {
   {"origin"               , required_argument , 0 ,  0  } ,
   {"output"               , required_argument , 0 ,  0  } ,
   {"port"                 , required_argument , 0 ,  0  } ,
+  {"process-and-exit"     , no_argument       , 0 ,  0  } ,
   {"real-os"              , no_argument       , 0 ,  0  } ,
   {"real-time-html"       , no_argument       , 0 ,  0  } ,
   {"sort-panel"           , required_argument , 0 ,  0  } ,
@@ -124,8 +129,10 @@ struct option long_opts[] = {
 #endif
   {"time-format"          , required_argument , 0 ,  0  } ,
   {"ws-url"               , required_argument , 0 ,  0  } ,
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
   {"geoip-database"       , required_argument , 0 ,  0  } ,
+#endif
+#ifdef HAVE_LIBGEOIP
   {"geoip-city-data"      , required_argument , 0 ,  0  } ,
 #endif
 #ifdef TCB_BTREE
@@ -237,6 +244,7 @@ cmd_help (void)
   "                                    are allowed. i.e., *.bing.com\n"
   "  --ignore-status=<CODE>          - Ignore parsing the given status code.\n"
   "  --num-tests=<number>            - Number of lines to test. >= 0 (10 default)\n"
+  "  --process-and-exit              - Parse log and exit without outputting data.\n"
   "  --real-os                       - Display real OS names. e.g, Windows XP, Snow\n"
   "                                    Leopard.\n"
   "  --sort-panel=PANEL,METRIC,ORDER - Sort panel on initial load. For example:\n"
@@ -247,10 +255,12 @@ cmd_help (void)
   "\n"
 
 /* GeoIP Options */
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
   "GeoIP Options\n\n"
+#ifdef HAVE_LIBGEOIP
   "  -g --std-geoip                  - Standard GeoIP database for less memory\n"
   "                                    consumption.\n"
+#endif
   "  --geoip-database=<path>         - Specify path to GeoIP database file. i.e.,\n"
   "                                    GeoLiteCity.dat, GeoIPv6.dat ...\n"
   "\n"
@@ -540,6 +550,10 @@ parse_long_opt (const char *name, const char *oarg)
       return;
     conf.num_tests = tests;
   }
+
+  /* process and exit */
+  if (!strcmp ("process-and-exit", name))
+    conf.process_and_exit = 1;
 
   /* real os */
   if (!strcmp ("real-os", name))

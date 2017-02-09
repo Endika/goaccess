@@ -57,8 +57,8 @@
 #include "gkhash.h"
 #endif
 
-#ifdef HAVE_LIBGEOIP
-#include "geolocation.h"
+#ifdef HAVE_GEOLOCATION
+#include "geoip.h"
 #endif
 
 #include "csv.h"
@@ -117,7 +117,7 @@ static GScroll gscroll = {
     {0, 0}, /* referrers   {scroll, offset} */
     {0, 0}, /* ref sites   {scroll, offset} */
     {0, 0}, /* keywords    {scroll, offset} */
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
     {0, 0}, /* geolocation {scroll, offset} */
 #endif
     {0, 0}, /* status      {scroll, offset} */
@@ -159,11 +159,8 @@ house_keeping (void)
   }
 
   /* GEOLOCATION */
-#ifdef HAVE_LIBGEOIP
-  if (geo_location_data != NULL) {
-    GeoIP_delete (geo_location_data);
-    GeoIP_cleanup ();
-  }
+#ifdef HAVE_GEOLOCATION
+  geoip_free ();
 #endif
 
   /* LOGGER */
@@ -910,7 +907,7 @@ get_keys (void)
       /* reset expanded module */
       set_module_to (&gscroll, REMOTE_USER);
       break;
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
     case 37:   /* Shift + 4 */
       /* reset expanded module */
       set_module_to (&gscroll, GEO_LOCATION);
@@ -1044,20 +1041,6 @@ init_processing (void)
     set_general_stats ();
   set_spec_date_format ();
 }
-
-/* Set up and open GeoIP database */
-#ifdef HAVE_LIBGEOIP
-static void
-init_geoip (void)
-{
-  /* open custom city GeoIP database */
-  if (conf.geoip_database != NULL)
-    geo_location_data = geoip_open_db (conf.geoip_database);
-  /* fall back to legacy GeoIP database */
-  else
-    geo_location_data = GeoIP_new (conf.geo_db);
-}
-#endif
 
 /* Determine the type of output, i.e., JSON, CSV, HTML */
 static void
@@ -1200,7 +1183,7 @@ initializer (void)
   /* setup to use the current locale */
   set_locale ();
 
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
   init_geoip ();
 #endif
 
@@ -1313,7 +1296,9 @@ main (int argc, char **argv)
   time (&end_proc);
 
   /* stdout */
-  if (conf.output_stdout)
+  if (conf.process_and_exit) {
+    /* ignore outputting, process only */
+  } else if (conf.output_stdout)
     standard_output ();
   /* curses */
   else

@@ -81,7 +81,7 @@ static GPanel paneling[] = {
   {KEYPHRASES      , print_csv_data} ,
   {STATUS_CODES    , print_csv_data} ,
   {REMOTE_USER     , print_csv_data} ,
-#ifdef HAVE_LIBGEOIP
+#ifdef HAVE_GEOLOCATION
   {GEO_LOCATION    , print_csv_data} ,
 #endif
 };
@@ -303,21 +303,12 @@ void
 output_csv (GLog * glog, GHolder * holder, const char *filename)
 {
   GModule module;
-  FILE *fp;
+  GPercTotals totals;
   const GPanel *panel = NULL;
   size_t idx = 0;
+  FILE *fp;
 
-  GPercTotals totals = {
-    .hits = glog->valid,
-    .visitors = ht_get_size_uniqmap (VISITORS),
-    .bw = glog->resp_size,
-  };
-
-  if (filename != NULL)
-    fp = fopen (filename, "w");
-  else
-    fp = stdout;
-
+  fp = (filename != NULL) ? fopen (filename, "w") : stdout;
   if (!fp)
     FATAL ("Unable to open CSV file: %s.", strerror (errno));
 
@@ -329,6 +320,8 @@ output_csv (GLog * glog, GHolder * holder, const char *filename)
 
     if (!(panel = panel_lookup (module)))
       continue;
+
+    set_module_totals (module, &totals);
     panel->render (fp, holder + module, totals);
   }
 

@@ -1,4 +1,4 @@
-.TH goaccess 1 "NOVEMBER 2016" Linux "User Manuals"
+.TH goaccess 1 "FEBRUARY 2016" Linux "User Manuals"
 .SH NAME
 goaccess \- fast web log analyzer and interactive viewer.
 .SH SYNOPSIS
@@ -536,6 +536,9 @@ Ensure clients send the specified origin header upon the WebSocket handshake.
 Specify the port to use. By default GoAccess' WebSocket server listens on port
 7890.
 .TP
+\fB\-\-process-and-exit
+Parse log and exit without outputting data.
+.TP
 \fB\-\-real-os
 Display real OS names. e.g, Windows XP, Snow Leopard.
 .TP
@@ -785,19 +788,15 @@ The time taken to serve the request, in milliseconds as a decimal number.
 Ignore this field.
 .IP %~
 Move forward through the log string until a non-space (!isspace) char is found.
-.IP |
-Vertical pipe or bar is used for either the character prior to the vertical
-pipe or followed by the vertical pipe.
+.IP ~h
+The host (the client IP address, either IPv4 or IPv6) in a X-Forwarded-For (XFF) field.
 
-The system checks if the given log format has a character delimiter followed by
-a vertical pipe followed by a second character delimiter, i.e.,
-.I ,|"
-The parser will use the first delimiter found when parsing the preceding
-specifier, e.g.,
-.I %h,|"
-If a vertical pipe is a character literal within the log format, then it has to
-be escaped using a backslash, e.g.,
-.I %d \[rs]\[rs]| %t
+It uses a special specifier which consists of a tilde before the host
+specifier, followed by the character(s) that delimit the XFF field, which are
+enclosed by curly braces (i.e., ~h{," })
+
+For example, ~h{," } is used in order to parse "11.25.11.53, 17.68.33.17" field
+which is delimited by a double quote, a comma, and a space.
 .P
 .I Note:
 In order to get the average, cumulative and maximum time served in GoAccess,
@@ -964,7 +963,8 @@ If we want to parse only a certain time-frame from DATE a to DATE b, we can do:
 .SS
 VIRTUAL HOSTS
 .P
-Assuming your log contains the virtual host field. For instance:
+Assuming your log contains the virtual host (server blocks) field. For
+instance:
 .IP
 vhost.com:80 10.131.40.139 - - [02/Mar/2016:08:14:04 -0600] "GET /shop/bag-p-20
 HTTP/1.1" 200 6715 "-" "Apache (internal dummy connection)"
